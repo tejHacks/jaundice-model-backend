@@ -5,13 +5,13 @@ import cv2
 import joblib
 from ultralytics import YOLO
 import traceback
+from utils import prediction_pipeline  # ← Here bro
 
 app = FastAPI()
 
-# CORS (Optional for local testing, needed if connecting frontend)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # React frontend URL later
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -21,17 +21,17 @@ app.add_middleware(
 def read_root():
     return {"message": "Jaundice Prediction API is live"}
 
-# === LOAD MODELS ===
+# === Load Models ===
 try:
     print("🔄 Loading models...")
     detection_model = YOLO("sclera_detector.pt")
     prediction_model = joblib.load("jaundice_predicter.pkl")
     print("✅ Models loaded successfully!")
 except Exception as e:
-    print("❌ Error loading models:", traceback.format_exc())
-    raise RuntimeError("Model loading failed")
+    print("❌ Model Load Error:\n", traceback.format_exc())
+    raise RuntimeError("Model loading failed.")
 
-# === PREDICT ===
+# === Predict Endpoint ===
 @app.post("/predict")
 async def predict(image: UploadFile = File(...)):
     try:
@@ -40,35 +40,21 @@ async def predict(image: UploadFile = File(...)):
         img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
         if img is None:
-            raise ValueError("Image decoding failed. Invalid image format.")
+            raise ValueError("Image decoding failed.")
 
-        results = detection_model(img)
-        print("🔍 YOLO detection complete.")
+        original, sclera_img, yellow_mask, JI, label = prediction_pipeline(img, detection_model, prediction_model)
 
-        for r in results:
-            for box in r.boxes:
-                x1, y1, x2, y2 = map(int, box.xyxy[0])
-                eye_img = img[y1:y2, x1:x2]
+        if label in ["No sclera detected", "Sclera region empty"]:
+            return {"error": label}
 
-                if eye_img.size == 0:
-                    raise ValueError("Detected region is empty.")
-
-                eye_img_resized = cv2.resize(eye_img, (64, 64))
-                blue_channel = eye_img_resized[:, :, 0]
-                mean_blue = np.mean(blue_channel)
-                feature = np.array([[mean_blue]])
-
-                print("🧠 Feature shape:", feature.shape)
-                prediction = prediction_model.predict(feature)
-
-                return {"prediction": str(prediction[0])}
-
-        return {"error": "No eye detected by YOLO."}
+        return {
+            "prediction": label,
+            "jaundice_index": JI
+        }
 
     except Exception as e:
-        error_details = traceback.format_exc()
-        print("🔥 ERROR TRACEBACK:\n", error_details)
+        print("🔥 Exception Traceback:\n", traceback.format_exc())
         return {
             "error": str(e),
-            "debug": error_details
+            "trace": traceback.format_exc()
         }
