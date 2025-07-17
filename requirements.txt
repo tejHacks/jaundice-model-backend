@@ -1,0 +1,10 @@
+opencv-python
+ultralytics
+numpy
+scikit-learn
+torch
+matplotlib
+fastapi
+uvicorn
+python-multipart
+pydantic
