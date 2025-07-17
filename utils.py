@@ -1,3 +1,7 @@
+import torch
+import cv2
+import numpy as np
+
 def prediction_pipeline(image , sclera_detection_model , model):
     prediction = sclera_detection_model.predict(image , conf = 0.6)
 
