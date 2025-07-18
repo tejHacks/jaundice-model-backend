@@ -11,7 +11,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-   allow_origins=["https://lumicare-ai.netlify.app"],  # React frontend URL later
+    allow_origins=["*"],  # React frontend URL later
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
