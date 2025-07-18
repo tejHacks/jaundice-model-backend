@@ -6,12 +6,12 @@ import joblib
 from ultralytics import YOLO
 import traceback
 from utils import prediction_pipeline  # ← Here bro
-
+    
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # React frontend URL later
+   allow_origins=["https://lumicare-ai.netlify.app"],  # React frontend URL later
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
